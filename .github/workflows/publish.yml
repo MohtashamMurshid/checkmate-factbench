@@ -51,6 +51,9 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          # Note: NPM_TOKEN must be an Automation token (not a regular access token)
+          # Automation tokens don't require 2FA and are designed for CI/CD
+          # See .github/PUBLISH.md for setup instructions
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
           npm publish --access public
 

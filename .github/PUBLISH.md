@@ -4,16 +4,19 @@ This repository includes a GitHub Actions workflow that automatically publishes 
 
 ## Setup
 
-### 1. Create an npm Access Token
+### 1. Create an npm Automation Token (Required for CI/CD)
+
+**Important**: You must use an **Automation Token** (not a regular access token) for CI/CD publishing. Automation tokens don't require 2FA and are designed for automated workflows.
 
 1. Go to https://www.npmjs.com/settings/YOUR_USERNAME/access-tokens
-2. Click "Generate New Token" → "Granular Access Token"
+2. Click "Generate New Token" → **"Automation"** (this is the key - use Automation, not Granular Access Token)
 3. Configure:
    - **Token name**: `github-actions-publish` (or any name you prefer)
    - **Expiration**: Choose your preference (or leave default)
-   - **Permissions**: Enable "Publish packages"
-   - **Bypass 2FA**: Enable this (required for automated publishing)
-4. Copy the token (you won't see it again!)
+   - **Permissions**: Will automatically have "Publish packages" permission
+   - **No 2FA required**: Automation tokens bypass 2FA automatically
+4. Copy the token immediately (you won't see it again!)
+5. Make sure to select **"Automation"** type, not "Granular Access Token" or "Classic Token"
 
 ### 2. Add Secret to GitHub Repository
 
@@ -73,6 +76,16 @@ The workflow will:
 ## Troubleshooting
 
 - **401 Unauthorized**: Check that `NPM_TOKEN` secret is set correctly
-- **403 Forbidden**: Ensure your npm token has "Publish packages" permission and "Bypass 2FA" enabled
+- **EOTP / One-time password required**: This means you're using a regular access token instead of an Automation token. Create a new **Automation** token (not Granular Access Token) and update the `NPM_TOKEN` secret.
+- **403 Forbidden**: Ensure your npm token has "Publish packages" permission. Automation tokens have this by default.
 - **Version mismatch**: Make sure the tag version (without `v`) matches `package.json` version exactly
+
+### Common Issue: 2FA Required Error
+
+If you see `npm error code EOTP` or "This operation requires a one-time password", you're using the wrong token type. Solution:
+
+1. Delete the old token from npm settings
+2. Create a new **Automation** token (not Granular Access Token)
+3. Update the `NPM_TOKEN` secret in GitHub with the new Automation token
+4. Re-run the workflow
 
