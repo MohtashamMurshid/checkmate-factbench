@@ -133,8 +133,14 @@ async function loadExamples(filePath: string, limit: number): Promise<FeverExamp
         throw new Error(`Missing or empty claim in dataset row id=${row?.id ?? "unknown"} (line ${rowIndex})`)
       }
       
+      const rowId = row.id
+      const id: string | number = 
+        typeof rowId === "string" || typeof rowId === "number" 
+          ? rowId 
+          : rowIndex
+      
       examples.push({
-        id: row.id ?? rowIndex,
+        id,
         claim,
         label,
         verifiable: row?.verifiable as string | undefined,
@@ -189,7 +195,7 @@ function App() {
       const cacheRoot = ".cache"
 
       if (cancelled) return
-      setState((s) => ({
+      setState((s: AppState) => ({
         ...s,
         started: true,
         runId,
@@ -232,11 +238,11 @@ function App() {
         const onProgress = async (ev: RunProgressEvent) => {
           if (cancelled) return
           if (ev.type === "modelStart") {
-            setState((s) => ({ ...s, currentModel: ev.modelId, currentModelDone: 0 }))
+            setState((s: AppState) => ({ ...s, currentModel: ev.modelId, currentModelDone: 0 }))
             return
           }
           if (ev.type === "modelItem") {
-            setState((s) => ({
+            setState((s: AppState) => ({
               ...s,
               currentModel: ev.modelId,
               currentModelDone: ev.completed,
@@ -247,7 +253,7 @@ function App() {
           if (ev.type === "modelDone") {
             const rawPath = `${rawDir}/${safeSlug(ev.modelId)}.jsonl`
             await writeJsonl(rawPath, ev.summary.items)
-            setState((s) => ({
+            setState((s: AppState) => ({
               ...s,
               summaries: {
                 ...s.summaries,
@@ -392,12 +398,12 @@ function App() {
       await Bun.write(outMdPath, md)
 
       if (cancelled) return
-      setState((s) => ({ ...s, done: true }))
+      setState((s: AppState) => ({ ...s, done: true }))
     }
 
     run().catch((e) => {
       if (cancelled) return
-      setState((s) => ({
+      setState((s: AppState) => ({
         ...s,
         done: true,
         error: e instanceof Error ? e.message : String(e),
@@ -433,7 +439,7 @@ function App() {
           <text>outputs: {state.outMdPath ?? "-"} (raw: {state.outDir ?? "-"}/raw/)</text>
           <text>---</text>
 
-          {models.map((m) => {
+          {models.map((m: string) => {
             const s = state.summaries[m]
             if (!s) return <text key={m}>{m}: pending…</text>
             const accPct = (s.accuracy * 100).toFixed(1)
