@@ -1,0 +1,34 @@
+# Source files
+*.ts
+!*.d.ts
+
+# Development files
+.git
+.gitignore
+.cursor
+.vscode
+.idea
+*.log
+
+# Build artifacts (keep dist/)
+*.tsbuildinfo
+*.map
+
+# Dependencies
+node_modules
+
+# Test files
+test
+tests
+*.test.ts
+*.spec.ts
+
+# Config files
+tsconfig.json
+bun.lock
+
+# Other
+.DS_Store
+.env
+.env.*
+
