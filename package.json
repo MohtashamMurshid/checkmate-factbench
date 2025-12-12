@@ -25,7 +25,16 @@
     "dev": "bun run ./src/index.tsx",
     "clean": "rm -rf dist && mkdir -p dist"
   },
-  "keywords": [],
+  "keywords": [
+    "fever",
+    "fact-checking",
+    "llm",
+    "evaluation",
+    "benchmark",
+    "factual-accuracy",
+    "openrouter",
+    "ai-evaluation"
+  ],
   "author": "",
   "license": "MIT",
   "repository": {

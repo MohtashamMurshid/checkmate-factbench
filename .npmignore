@@ -32,3 +32,6 @@ bun.lock
 .env
 .env.*
 
+.cache
+runs
+
