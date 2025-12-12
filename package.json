@@ -18,6 +18,7 @@
     "cli.ts",
     "src",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
