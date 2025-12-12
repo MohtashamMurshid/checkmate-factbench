@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Better separation of concerns with improved function documentation
 - More consistent error handling patterns across the codebase
 - Improved type definitions for better IDE support and developer experience
+- Added explicit type annotations to React state setters for better type inference
+- Improved type safety for example ID handling in JSONL parsing
+- Added `@types/react` as dev dependency for better TypeScript support
 
 ## [0.1.0] - 2025-12-12
 
