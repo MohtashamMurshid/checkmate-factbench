@@ -1,6 +1,6 @@
 {
   "name": "checkmate-factbench",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Checkmate FactBench is a factual accuracy evaluation framework that benchmarks LLMs using the FEVER dataset. It measures how well a model can classify claims (Supported / Refuted / NEI) and cite the correct evidence from Wikipedia.",
   "type": "module",
   "main": "./dist/index.js",

@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-12-12
+
+### Improved
+
+- **Enhanced Type Safety**: Removed all `any` types and added proper TypeScript types throughout the codebase
+- **Better Error Handling**: Added comprehensive input validation and more descriptive error messages
+- **Improved Documentation**: Added JSDoc comments to all public functions and types
+- **Robust Validation**: Added validation for all function parameters with clear error messages
+- **Better Cache Handling**: Improved cache loading with better error handling for invalid entries
+- **Enhanced JSONL Parsing**: Added line-by-line error reporting for malformed JSON in dataset files
+- **Usage Tracking**: Improved type safety for token usage tracking from API responses
+
+### Fixed
+
+- Fixed type safety issues with usage metadata extraction
+- Improved error messages to include line numbers and context
+- Better handling of edge cases in argument parsing
+
+### Technical Improvements
+
+- All functions now include parameter validation
+- Better separation of concerns with improved function documentation
+- More consistent error handling patterns across the codebase
+- Improved type definitions for better IDE support and developer experience
+
 ## [0.1.0] - 2025-12-12
 
 ### Added
@@ -56,5 +81,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESM and CommonJS builds included
 - MIT License
 
+[0.2.0]: https://github.com/MohtashamMurshid/checkmate-factbench/releases/tag/v0.2.0
 [0.1.0]: https://github.com/MohtashamMurshid/checkmate-factbench/releases/tag/v0.1.0
 
