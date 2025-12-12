@@ -1,7 +1,7 @@
 {
   "name": "checkmate-factbench",
   "version": "0.1.0",
-  "description": "A factbench library built with Bun",
+  "description": "Checkmate FactBench is a factual accuracy evaluation framework that benchmarks LLMs using the FEVER dataset. It measures how well a model can classify claims (Supported / Refuted / NEI) and cite the correct evidence from Wikipedia.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,6 +22,7 @@
     "build": "bun run clean && bun build ./index.ts --target node --format esm --minify --outfile ./dist/index.js && bun build ./index.ts --target node --format cjs --minify --outfile ./dist/index.cjs && tsc --emitDeclarationOnly --declaration --declarationMap --outDir dist",
     "prepublishOnly": "bun run build",
     "test": "bun test",
+    "dev": "bun run ./src/index.ts",
     "clean": "rm -rf dist && mkdir -p dist"
   },
   "keywords": [],
@@ -32,14 +33,14 @@
     "url": ""
   },
   "dependencies": {
-    "ai": "^5.0.0",
-    "@openrouter/ai-sdk-provider": "^0.0.5",
+    "@openrouter/ai-sdk-provider": "^1.5.3",
     "@opentui/core": "^0.1.60",
-    "react": "^19.0.0",
-    "commander": "^12.1.0",
+    "ai": "^5.0.0",
     "chalk": "^5.3.0",
-    "string-similarity": "^4.0.4",
-    "ora": "^8.1.1"
+    "commander": "^12.1.0",
+    "ora": "^8.1.1",
+    "react": "^19.0.0",
+    "string-similarity": "^4.0.4"
   },
   "devDependencies": {
     "@types/bun": "latest",
