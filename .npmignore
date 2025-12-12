@@ -1,5 +1,7 @@
-# Source files
+# Source files (but include CLI and src for Bun execution)
 *.ts
+!cli.ts
+!src/**/*.ts
 !*.d.ts
 
 # Development files

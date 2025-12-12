@@ -15,6 +15,8 @@
   },
   "files": [
     "dist",
+    "cli.ts",
+    "src",
     "README.md",
     "LICENSE"
   ],
@@ -35,11 +37,14 @@
     "openrouter",
     "ai-evaluation"
   ],
-  "author": "",
+  "author": "Mohtasham Murshid Madani <mohtashammurshid@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/MohtashamMurshid/checkmate-factbench"
+  },
+  "bin": {
+    "checkmate-factbench": "./cli.ts"
   },
   "dependencies": {
     "@openrouter/ai-sdk-provider": "^1.5.3",

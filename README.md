@@ -13,6 +13,8 @@ A CLI tool for benchmarking LLMs on factual accuracy using the FEVER dataset. Ev
 
 ## Installation
 
+**Prerequisites:** This tool requires [Bun](https://bun.sh) to be installed.
+
 ```bash
 npm install -g checkmate-factbench
 ```
@@ -21,6 +23,11 @@ or
 
 ```bash
 bun add -g checkmate-factbench
+```
+
+After installation, you can run the CLI with:
+```bash
+checkmate-factbench --file val/train.jsonl --limit 10
 ```
 
 ## Quick Start
