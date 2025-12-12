@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react"
-import { createCliRenderer } from "@opentui/core"
-import { createRoot } from "@opentui/react"
+import { render, Box, Text, Newline } from "ink"
 import { Command } from "commander"
+import Spinner from "ink-spinner"
 import { readJsonlFile } from "./lib/readJsonl"
 import type { FeverExample, ModelEvalSummary, RunProgressEvent } from "./lib/evaluate"
 import { evaluateModelExamples } from "./lib/evaluate"
@@ -306,44 +306,46 @@ function App() {
 
         // Evaluate only missing rows
         const missingExamples = missing.map((m) => m.ex)
-        await evaluateModelExamples(
-          {
-            openrouterApiKey: apiKey,
-            modelId,
-            examples: missingExamples,
-            concurrency: args.concurrency,
-          },
-          async (item, localIdx) => {
-            const { idx, exHash } = missing[localIdx]
-            item.cached = false
-            item.exampleHash = exHash
-            fullItems[idx] = item
-            recordPrediction(cm, item.goldLabel, item.predictedLabel)
-            completed++
+        if (missingExamples.length > 0) {
+          await evaluateModelExamples(
+            {
+              openrouterApiKey: apiKey,
+              modelId,
+              examples: missingExamples,
+              concurrency: args.concurrency,
+            },
+            async (item, localIdx) => {
+              const { idx, exHash } = missing[localIdx]
+              item.cached = false
+              item.exampleHash = exHash
+              fullItems[idx] = item
+              recordPrediction(cm, item.goldLabel, item.predictedLabel)
+              completed++
 
-            const total = sumConfusionMatrix(cm)
-            const correct = correctFromConfusionMatrix(cm)
-            const invalid = cm.invalid
-            const summarySoFar = {
-              modelId,
-              confusion: cm,
-              total,
-              correct,
-              invalid,
-              accuracy: total === 0 ? 0 : correct / total,
-              invalidRate: total === 0 ? 0 : invalid / total,
-            }
-            await onProgress({
-              type: "modelItem",
-              modelId,
-              index: idx,
-              completed,
-              totalExamples: examples.length,
-              item,
-              summarySoFar,
-            })
-          },
-        )
+              const total = sumConfusionMatrix(cm)
+              const correct = correctFromConfusionMatrix(cm)
+              const invalid = cm.invalid
+              const summarySoFar = {
+                modelId,
+                confusion: cm,
+                total,
+                correct,
+                invalid,
+                accuracy: total === 0 ? 0 : correct / total,
+                invalidRate: total === 0 ? 0 : invalid / total,
+              }
+              await onProgress({
+                type: "modelItem",
+                modelId,
+                index: idx,
+                completed,
+                totalExamples: examples.length,
+                item,
+                summarySoFar,
+              })
+            },
+          )
+        }
 
         // Update cache with all items (cached + new)
         for (let i = 0; i < examples.length; i++) {
@@ -417,46 +419,102 @@ function App() {
 
   const models = args.models
 
+  if (state.error) {
+    return (
+      <Box flexDirection="column" padding={1} borderColor="red" borderStyle="round">
+        <Text color="red" bold>ERROR:</Text>
+        <Text color="red">{state.error}</Text>
+      </Box>
+    )
+  }
+
   return (
-    <box flexDirection="column" padding={1}>
-      <text>Checkmate FactBench — OpenRouter validation</text>
-      <text>
-        file: {args.filePath} | limit: {args.limit} | concurrency: {args.concurrency}
-      </text>
-      <text>models: {models.join(", ")}</text>
-      <text>labels: {FEVER_LABELS.join(", ")}</text>
-      <text>---</text>
+    <Box flexDirection="column" padding={1}>
+      <Box width="100%" justifyContent="center">
+        <Text bold underline>Checkmate FactBench</Text>
+      </Box>
+      <Newline />
+      
+      <Box flexDirection="column" borderStyle="single" borderColor="gray" paddingX={1}>
+        <Text>
+          <Text bold color="cyan">Config: </Text>
+          <Text>File: {args.filePath} | Limit: {args.limit} | Concurrency: {args.concurrency}</Text>
+        </Text>
+        <Text>
+          <Text bold color="cyan">Models: </Text>
+          <Text dimColor>{models.join(", ")}</Text>
+        </Text>
+        <Text>
+          <Text bold color="cyan">Labels: </Text>
+          <Text dimColor>{FEVER_LABELS.join(", ")}</Text>
+        </Text>
+      </Box>
+      <Newline />
 
-      {state.error ? (
-        <text>ERROR: {state.error}</text>
-      ) : !state.started ? (
-        <text>Starting…</text>
+      {!state.started ? (
+        <Box>
+           <Text color="yellow"><Spinner type="dots" /> Starting...</Text>
+        </Box>
       ) : (
-        <>
-          <text>
-            current: {state.currentModel ?? "-"} ({state.currentModelDone}/{state.examplesTotal})
-          </text>
-          <text>outputs: {state.outMdPath ?? "-"} (raw: {state.outDir ?? "-"}/raw/)</text>
-          <text>---</text>
+        <Box flexDirection="column">
+           <Box marginBottom={1}>
+             <Text>
+               <Text bold color="green">Status: </Text>
+               <Text>Current: {state.currentModel ?? "-"} </Text>
+               <Text dimColor>({state.currentModelDone}/{state.examplesTotal})</Text>
+             </Text>
+           </Box>
+           
+           <Box marginBottom={1}>
+             <Text>
+               <Text bold color="blue">Outputs: </Text>
+               <Text>{state.outMdPath ?? "-"}</Text>
+               <Newline />
+               <Text dimColor>Raw: {state.outDir ?? "-"}/raw/</Text>
+             </Text>
+           </Box>
 
-          {models.map((m: string) => {
-            const s = state.summaries[m]
-            if (!s) return <text key={m}>{m}: pending…</text>
-            const accPct = (s.accuracy * 100).toFixed(1)
-            const invPct = (s.invalidRate * 100).toFixed(1)
-            return (
-              <text key={m}>
-                {m}: acc {accPct}% ({s.correct}/{s.total}) | invalid {invPct}%
-              </text>
-            )
-          })}
+           <Box flexDirection="column" borderStyle="round" borderColor="blue" paddingX={1}>
+             <Box>
+                <Box width="40%"><Text bold underline>Model</Text></Box>
+                <Box width="20%"><Text bold underline>Accuracy</Text></Box>
+                <Box width="20%"><Text bold underline>Counts</Text></Box>
+                <Box width="20%"><Text bold underline>Invalid</Text></Box>
+             </Box>
+             {models.map((m: string) => {
+                const s = state.summaries[m]
+                const truncatedName = m.length > 30 ? m.slice(0, 27) + "..." : m
+                
+                if (!s) {
+                  const isCurrent = state.currentModel === m
+                  return (
+                    <Box key={m}>
+                      <Box width="40%"><Text color={isCurrent ? "yellow" : "gray"}>{truncatedName}</Text></Box>
+                      <Box width="60%"><Text dimColor>{isCurrent ? <><Spinner type="dots" /> Processing</> : "Pending..."}</Text></Box>
+                    </Box>
+                  )
+                }
+                const accPct = (s.accuracy * 100).toFixed(1)
+                const invPct = (s.invalidRate * 100).toFixed(1)
+                
+                return (
+                  <Box key={m}>
+                    <Box width="40%"><Text color="green">{truncatedName}</Text></Box>
+                    <Box width="20%"><Text>{accPct}%</Text></Box>
+                    <Box width="20%"><Text>{s.correct}/{s.total}</Text></Box>
+                    <Box width="20%"><Text>{invPct}%</Text></Box>
+                  </Box>
+                )
+             })}
+           </Box>
 
-          {state.done ? <text>Done.</text> : <text>Running…</text>}
-        </>
+           <Box marginTop={1}>
+             {state.done ? <Text color="green" bold>✔ Done.</Text> : <Text color="yellow"><Spinner type="dots" /> Running...</Text>}
+           </Box>
+        </Box>
       )}
-    </box>
+    </Box>
   )
 }
 
-const renderer = await createCliRenderer()
-createRoot(renderer).render(<App />)
+render(<App />)

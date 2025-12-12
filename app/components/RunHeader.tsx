@@ -39,7 +39,7 @@ export default function RunHeader({ runData }: Props) {
         <strong>Models:</strong>
         <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           {runData.models.map((model) => (
-            <span
+            <div
               key={model}
               style={{
                 background: '#e3f2fd',
@@ -51,7 +51,7 @@ export default function RunHeader({ runData }: Props) {
               }}
             >
               {model}
-            </span>
+            </div>
           ))}
         </div>
       </div>
