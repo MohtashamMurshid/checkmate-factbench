@@ -36,4 +36,5 @@ bun.lock
 
 .cache
 runs
+app
 

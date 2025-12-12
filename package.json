@@ -26,6 +26,7 @@
     "prepublishOnly": "bun run build",
     "test": "bun test",
     "dev": "bun run ./src/index.tsx",
+    "viewer": "bun run ./app/dev.ts",
     "clean": "rm -rf dist && mkdir -p dist"
   },
   "keywords": [
@@ -56,6 +57,7 @@
     "commander": "^12.1.0",
     "ora": "^8.1.1",
     "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "string-similarity": "^4.0.4"
   },
   "devDependencies": {
