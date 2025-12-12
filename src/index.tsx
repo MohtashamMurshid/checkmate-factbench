@@ -14,7 +14,7 @@ import {
   recordPrediction,
   sumConfusionMatrix,
 } from "./lib/labels"
-import { DEFAULT_MODELS } from "./config/models"
+import { DEFAULT_MODELS, MODEL_ALIASES, MODEL_DISPLAY_NAMES } from "./config/models"
 import {
   cacheHitToItem,
   computeExampleHash,
@@ -25,6 +25,114 @@ import {
   saveModelCache,
   type CacheEntry,
 } from "./lib/cache"
+
+// ANSI color codes for hacker terminal aesthetic
+const colors = {
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  dim: "\x1b[2m",
+  green: "\x1b[32m",
+  brightGreen: "\x1b[92m",
+  cyan: "\x1b[36m",
+  brightCyan: "\x1b[96m",
+  yellow: "\x1b[33m",
+  brightYellow: "\x1b[93m",
+  red: "\x1b[31m",
+  brightRed: "\x1b[91m",
+  magenta: "\x1b[35m",
+  brightMagenta: "\x1b[95m",
+  blue: "\x1b[34m",
+  brightBlue: "\x1b[94m",
+  white: "\x1b[37m",
+  brightWhite: "\x1b[97m",
+}
+
+const ANSI_REGEX = /\x1b\[[0-9;]*m/g
+
+// Box drawing characters
+const box = {
+  tl: "┌",
+  tr: "┐",
+  bl: "└",
+  br: "┘",
+  h: "─",
+  v: "│",
+  t: "┬",
+  b: "┴",
+  l: "├",
+  r: "┤",
+  c: "┼",
+}
+
+function style(text: string, ...colorCodes: string[]): string {
+  return colorCodes.join("") + text + colors.reset
+}
+
+function stripAnsi(str: string): string {
+  return str.replace(ANSI_REGEX, "")
+}
+
+function truncateAnsi(str: string, maxWidth: number): string {
+  if (maxWidth <= 0) return ""
+  let visible = 0
+  let result = ""
+  let i = 0
+  let truncated = false
+  let hasActiveStyle = false
+
+  while (i < str.length && visible < maxWidth) {
+    const char = str[i]
+    if (char === "\x1b") {
+      const end = str.indexOf("m", i)
+      if (end === -1) break
+      const seq = str.slice(i, end + 1)
+      result += seq
+      if (seq === colors.reset) {
+        hasActiveStyle = false
+      } else if (!seq.endsWith("[0m")) {
+        hasActiveStyle = true
+      }
+      i = end + 1
+      continue
+    }
+    result += char
+    visible++
+    i++
+  }
+
+  if (i < str.length) {
+    truncated = true
+  }
+
+  if (hasActiveStyle || truncated) {
+    result += colors.reset
+  }
+
+  return result
+}
+
+function boxLine(width: number, left: string, middle: string, right: string): string {
+  return left + middle.repeat(Math.max(0, width - 2)) + right
+}
+
+function pad(str: string, width: number, align: "left" | "right" = "left"): string {
+  const truncated = truncateAnsi(str, width)
+  const len = stripAnsi(truncated).length
+  const padLen = Math.max(0, width - len)
+  return align === "left" ? truncated + " ".repeat(padLen) : " ".repeat(padLen) + truncated
+}
+
+function humanizeModelId(modelId: string): string {
+  const afterSlash = modelId.includes("/") ? modelId.split("/").pop() ?? modelId : modelId
+  const beforeColon = afterSlash.includes(":") ? afterSlash.split(":")[0] ?? afterSlash : afterSlash
+  return beforeColon
+    .split("-")
+    .filter(Boolean)
+    .map((segment) =>
+      /^[0-9.]+$/.test(segment) ? segment : segment.charAt(0).toUpperCase() + segment.slice(1),
+    )
+    .join(" ")
+}
 
 type AppState = {
   started: boolean
@@ -162,6 +270,14 @@ async function loadExamples(filePath: string, limit: number): Promise<FeverExamp
 
 function App() {
   const args = useMemo(() => parseArgs(process.argv), [])
+  const modelLabels = useMemo(() => {
+    const map = new Map<string, string>()
+    args.models.forEach((model, idx) => {
+      const alias = MODEL_ALIASES[model] ?? `M${String(idx + 1).padStart(2, "0")}`
+      map.set(model, alias)
+    })
+    return map
+  }, [args.models])
 
   const [state, setState] = useState<AppState>(() => ({
     started: false,
@@ -306,44 +422,46 @@ function App() {
 
         // Evaluate only missing rows
         const missingExamples = missing.map((m) => m.ex)
-        await evaluateModelExamples(
-          {
-            openrouterApiKey: apiKey,
-            modelId,
-            examples: missingExamples,
-            concurrency: args.concurrency,
-          },
-          async (item, localIdx) => {
-            const { idx, exHash } = missing[localIdx]
-            item.cached = false
-            item.exampleHash = exHash
-            fullItems[idx] = item
-            recordPrediction(cm, item.goldLabel, item.predictedLabel)
-            completed++
+        if (missingExamples.length > 0) {
+          await evaluateModelExamples(
+            {
+              openrouterApiKey: apiKey,
+              modelId,
+              examples: missingExamples,
+              concurrency: args.concurrency,
+            },
+            async (item, localIdx) => {
+              const { idx, exHash } = missing[localIdx]
+              item.cached = false
+              item.exampleHash = exHash
+              fullItems[idx] = item
+              recordPrediction(cm, item.goldLabel, item.predictedLabel)
+              completed++
 
-            const total = sumConfusionMatrix(cm)
-            const correct = correctFromConfusionMatrix(cm)
-            const invalid = cm.invalid
-            const summarySoFar = {
-              modelId,
-              confusion: cm,
-              total,
-              correct,
-              invalid,
-              accuracy: total === 0 ? 0 : correct / total,
-              invalidRate: total === 0 ? 0 : invalid / total,
-            }
-            await onProgress({
-              type: "modelItem",
-              modelId,
-              index: idx,
-              completed,
-              totalExamples: examples.length,
-              item,
-              summarySoFar,
-            })
-          },
-        )
+              const total = sumConfusionMatrix(cm)
+              const correct = correctFromConfusionMatrix(cm)
+              const invalid = cm.invalid
+              const summarySoFar = {
+                modelId,
+                confusion: cm,
+                total,
+                correct,
+                invalid,
+                accuracy: total === 0 ? 0 : correct / total,
+                invalidRate: total === 0 ? 0 : invalid / total,
+              }
+              await onProgress({
+                type: "modelItem",
+                modelId,
+                index: idx,
+                completed,
+                totalExamples: examples.length,
+                item,
+                summarySoFar,
+              })
+            },
+          )
+        }
 
         // Update cache with all items (cached + new)
         for (let i = 0; i < examples.length; i++) {
@@ -416,42 +534,136 @@ function App() {
   }, [args])
 
   const models = args.models
+  const width = Math.max(80, Math.min(120, process.stdout?.columns ?? 80))
+  const makeRow = (content: string) => box.v + pad(content, width - 2) + box.v
+  const aliasFor = (model: string) => modelLabels.get(model) ?? model
+  const displayNameFor = (model: string) =>
+    MODEL_DISPLAY_NAMES[model] ?? humanizeModelId(model)
+
+  const header = [
+    boxLine(width, box.tl, box.h, box.tr),
+    box.v + pad(style(" CHECKMATE FACTBENCH ", colors.brightCyan, colors.bright), width - 2) + box.v,
+    box.v + pad(style(" OpenRouter Validation System ", colors.cyan), width - 2) + box.v,
+    boxLine(width, box.l, box.h, box.r),
+  ].join("\n")
+
+  const footer = boxLine(width, box.bl, box.h, box.br)
 
   return (
     <box flexDirection="column" padding={1}>
-      <text>Checkmate FactBench — OpenRouter validation</text>
-      <text>
-        file: {args.filePath} | limit: {args.limit} | concurrency: {args.concurrency}
-      </text>
-      <text>models: {models.join(", ")}</text>
-      <text>labels: {FEVER_LABELS.join(", ")}</text>
-      <text>---</text>
+      <text>{header}</text>
+      <text>{makeRow("")}</text>
+      <text>{makeRow(`${style("FILE:", colors.brightGreen)} ${args.filePath}`)}</text>
+      <text>{makeRow(`${style("LIMIT:", colors.brightGreen)} ${args.limit}`)}</text>
+      <text>{makeRow(`${style("CONCURRENCY:", colors.brightGreen)} ${args.concurrency}`)}</text>
+      <text>{makeRow(`${style("LABELS:", colors.brightYellow)} ${FEVER_LABELS.join(", ")}`)}</text>
+      <text>{boxLine(width, box.l, box.h, box.r)}</text>
+      <text>{makeRow(style("MODELS:", colors.brightCyan))}</text>
+      {models.map((m) => (
+        <text key={`legend-${m}`}>
+          {makeRow(
+            `  ${style(aliasFor(m), colors.brightCyan)} ${style("→", colors.dim)} ${style(
+              displayNameFor(m),
+              colors.white,
+            )}`,
+          )}
+        </text>
+      ))}
+      <text>{boxLine(width, box.l, box.h, box.r)}</text>
 
       {state.error ? (
-        <text>ERROR: {state.error}</text>
+        <>
+          <text>{makeRow(`${style("✗ ERROR:", colors.brightRed, colors.bright)} ${state.error}`)}</text>
+          <text>{footer}</text>
+        </>
       ) : !state.started ? (
-        <text>Starting…</text>
+        <>
+          <text>{makeRow(style("▶ INITIALIZING...", colors.brightYellow))}</text>
+          <text>{footer}</text>
+        </>
       ) : (
         <>
           <text>
-            current: {state.currentModel ?? "-"} ({state.currentModelDone}/{state.examplesTotal})
+            {makeRow(
+              `${style("CURRENT:", colors.brightCyan)} ${
+                state.currentModel != null
+                  ? `${style(aliasFor(state.currentModel), colors.brightCyan)} ${style(
+                      "→",
+                      colors.dim,
+                    )} ${style(displayNameFor(state.currentModel), colors.white)}`
+                  : "-"
+              } ${style("│", colors.dim)} ${style("PROGRESS:", colors.brightGreen)} ${
+                state.currentModelDone
+              }/${state.examplesTotal}`,
+            )}
           </text>
-          <text>outputs: {state.outMdPath ?? "-"} (raw: {state.outDir ?? "-"}/raw/)</text>
-          <text>---</text>
+          <text>{makeRow(`${style("OUTPUT:", colors.brightMagenta)} ${state.outMdPath ?? "-"}`)}</text>
+          <text>{makeRow(`${style("RAW:", colors.dim)} ${state.outDir ?? "-"}/raw/`)}</text>
+          <text>{boxLine(width, box.l, box.h, box.r)}</text>
 
           {models.map((m: string) => {
             const s = state.summaries[m]
-            if (!s) return <text key={m}>{m}: pending…</text>
+            if (!s) {
+              return (
+                <text key={m}>
+                  {makeRow(
+                    `${style("○", colors.yellow)} ${style(aliasFor(m), colors.brightCyan)} ${style(
+                      displayNameFor(m),
+                      colors.white,
+                    )} ${style("│", colors.dim)} ${style("PENDING...", colors.dim)}`,
+                  )}
+                </text>
+              )
+            }
             const accPct = (s.accuracy * 100).toFixed(1)
             const invPct = (s.invalidRate * 100).toFixed(1)
+            const accColor =
+              s.accuracy >= 0.7
+                ? colors.brightGreen
+                : s.accuracy >= 0.5
+                  ? colors.brightYellow
+                  : colors.brightRed
+            const invColor =
+              s.invalidRate > 0.1
+                ? colors.brightRed
+                : s.invalidRate > 0.05
+                  ? colors.brightYellow
+                  : colors.brightGreen
+            const statusIcon = s.accuracy >= 0.7 ? "✓" : s.accuracy >= 0.5 ? "◐" : "✗"
+
             return (
               <text key={m}>
-                {m}: acc {accPct}% ({s.correct}/{s.total}) | invalid {invPct}%
+                {makeRow(
+                  `${style(statusIcon, accColor)} ${style(aliasFor(m), colors.brightCyan)} ${style(
+                    displayNameFor(m),
+                    colors.white,
+                  )} ${style("│", colors.dim)} ${style("ACC:", colors.brightCyan)} ${style(
+                    accPct + "%",
+                    accColor,
+                  )} ${style(
+                    `(${s.correct}/${s.total})`,
+                    colors.dim,
+                  )} ${style("│", colors.dim)} ${style("INVALID:", colors.brightMagenta)} ${style(
+                    invPct + "%",
+                    invColor,
+                  )}`,
+                )}
               </text>
             )
           })}
 
-          {state.done ? <text>Done.</text> : <text>Running…</text>}
+          <text>{boxLine(width, box.l, box.h, box.r)}</text>
+          <text>
+            {makeRow(
+              state.done
+                ? `${style("✓ COMPLETE", colors.brightGreen, colors.bright)} ${style(
+                    "— All models evaluated successfully",
+                    colors.dim,
+                  )}`
+                : `${style("▶ RUNNING", colors.brightYellow)} ${style("— Processing models...", colors.dim)}`,
+            )}
+          </text>
+          <text>{footer}</text>
         </>
       )}
     </box>
