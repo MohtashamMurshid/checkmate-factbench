@@ -41,7 +41,11 @@ export interface UseEvaluationRunArgs {
   out?: string
   concurrency: number
 }
-
+/**
+ * Evaluates a model on a dataset and returns the state of the evaluation.
+ * @param args - The arguments for the evaluation.
+ * @returns The state of the evaluation.
+ */
 export function useEvaluationRun(args: UseEvaluationRunArgs) {
   const [state, setState] = useState<AppState>(() => ({
     started: false,
