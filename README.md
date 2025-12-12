@@ -188,6 +188,26 @@ The JSONL file should contain one JSON object per line:
 4. **Generate Reports**: Creates markdown report and saves raw JSONL results
 5. **Display Results**: Shows live progress and final statistics
 
+## Publishing
+
+This package can be published manually or automatically via GitHub Actions.
+
+### Manual Publishing
+
+```bash
+npm publish
+```
+
+### Publishing via GitHub Actions
+
+See [.github/PUBLISH.md](.github/PUBLISH.md) for detailed instructions on setting up automated publishing.
+
+Quick steps:
+1. Create an npm access token with "Publish packages" permission
+2. Add it as `NPM_TOKEN` secret in GitHub repository settings
+3. Create a version tag: `git tag v0.1.0 && git push origin v0.1.0`
+4. GitHub Actions will automatically build and publish to npm
+
 ## License
 
 MIT
